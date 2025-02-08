@@ -101,6 +101,7 @@ int getIndex(int x, int y)
 }
 
 
+
 void desenhaSprite(int matriz[5][5][3], float intensidade)
 {
   for (int linha = 0; linha < 5; linha++)

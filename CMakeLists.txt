@@ -40,14 +40,17 @@ add_executable(projeto_serial_rp2040 projeto_serial_rp2040.c inc/ssd1306.c)
 pico_set_program_name(projeto_serial_rp2040 "projeto_serial_rp2040")
 pico_set_program_version(projeto_serial_rp2040 "0.1")
 
+
+pico_generate_pio_header(projeto_serial_rp2040 ${CMAKE_CURRENT_LIST_DIR}/ws2818b.pio)
+
+
 # Modify the below lines to enable/disable output over UART/USB
 pico_enable_stdio_uart(projeto_serial_rp2040 1)
 pico_enable_stdio_usb(projeto_serial_rp2040 1)
 
 # Add the standard library to the build
 target_link_libraries(projeto_serial_rp2040
-hardware_timer
-hardware_pwm
+
         pico_stdlib)
 
 # Add the standard include files to the build
@@ -57,7 +60,7 @@ target_include_directories(projeto_serial_rp2040 PRIVATE
 
 # Add any user requested libraries
 target_link_libraries(projeto_serial_rp2040 
-
+hardware_timer
 hardware_pio
 hardware_clocks
 hardware_pwm
