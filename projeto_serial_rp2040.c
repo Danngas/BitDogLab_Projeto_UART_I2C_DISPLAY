@@ -10,6 +10,8 @@
 #include "inc/ssd1306.h"
 #include "inc/font.h"
 
+#include "numeros.h"
+
 #define I2C_PORT i2c1
 #define I2C_SDA 14
 #define I2C_SCL 15
@@ -20,159 +22,61 @@
 #define LED_GREEN_PIN 11
 #define LED_BLUE_PIN 12
 #define BUZZER_PIN 21
-#define BUZZER_FREQUENCY 100
 
-// Função para inicializar os pinos GPIO
+// Definição dos pinos de LED e botões
+#define LED_PIN 7
+#define BUTTON_A 5
+#define BUTTON_B 6
+
+// Valor padrão para indicar que nenhum botão foi pressionado
+int AUXBUTON1 = 0; // Variável auxiliar para armazenar qual botão foi pressionado
+int AUXBUTON2 = 0;
+static int numero_atual = 5; // Variável que armazena o número atualmente exibido na matriz de LEDs
+char buffer[20];
+static volatile uint32_t last_time = 0; // Variável auxiliar para controle de debounce
+
 void initialize_gpio()
 {
-    // Inicializar os pinos dos LEDs como saída
-    gpio_init(LED_RED_PIN);
-    gpio_init(LED_GREEN_PIN);
-    gpio_init(LED_BLUE_PIN);
-    gpio_set_dir(LED_RED_PIN, GPIO_OUT);
-    gpio_set_dir(LED_GREEN_PIN, GPIO_OUT);
-    gpio_set_dir(LED_BLUE_PIN, GPIO_OUT);
-    // Inicializar o pino do Buzzer como saída
-    gpio_init(BUZZER_PIN);
-    gpio_set_dir(BUZZER_PIN, GPIO_OUT);
+    // Configuração do LED vermelho
+    gpio_init(LED_RED_PIN);              // Inicializa o pino do LED vermelho
+    gpio_set_dir(LED_RED_PIN, GPIO_OUT); // Define o pino como saída
+
+    // Configuração do LED vermelho
+    gpio_init(LED_GREEN_PIN);              // Inicializa o pino do LED vermelho
+    gpio_set_dir(LED_GREEN_PIN, GPIO_OUT); // Define o pino como saída
+                                           // Configuração do LED vermelho
+    gpio_init(LED_BLUE_PIN);               // Inicializa o pino do LED vermelho
+    gpio_set_dir(LED_BLUE_PIN, GPIO_OUT);  // Define o pino como saída
 }
 
-// Definição de uma função para inicializar o PWM no pino do buzzer
-void pwm_init_buzzer(uint pin)
-{
-    // Configurar o pino como saída de PWM
-    gpio_set_function(pin, GPIO_FUNC_PWM);
-
-    // Obter o slice do PWM associado ao pino
-    uint slice_num = pwm_gpio_to_slice_num(pin);
-
-    // Configurar o PWM com frequência desejada
-    pwm_config config = pwm_get_default_config();
-    pwm_config_set_clkdiv(&config, clock_get_hz(clk_sys) / (BUZZER_FREQUENCY * 4096)); // Divisor de clock
-    pwm_init(slice_num, &config, true);
-
-    // Iniciar o PWM no nível baixo
-    pwm_set_gpio_level(pin, 0);
-}
-
-void beep(uint pin, uint duration_ms)
-{
-    // Obter o slice do PWM associado ao pino
-    uint slice_num = pwm_gpio_to_slice_num(pin);
-
-    // Configurar o duty cycle para 50% (ativo)
-    pwm_set_gpio_level(pin, 2048);
-
-    // Temporização
-    sleep_ms(duration_ms);
-
-    // Desativar o sinal PWM (duty cycle 0)
-    pwm_set_gpio_level(pin, 0);
-
-    // Pausa entre os beeps
-    sleep_ms(100); // Pausa de 100ms
-}
-
-void handle_key_5()
-{
-    // Desliga todos os LEDs
-    gpio_put(LED_RED_PIN, 0);
-    gpio_put(LED_GREEN_PIN, 0);
-    gpio_put(LED_BLUE_PIN, 0);
-}
-
-// Função para controlar o LED RGB com base no comando
-void control_rgb_led(const char *comando)
-{
-
-    if (strcmp(comando, "BUZZER") == 0)
-    {
-
-        beep(BUZZER_PIN, 2000); // Bipe de 500ms
-    }
-
-    if (strcmp(comando, "RED") == 0)
-    {
-        gpio_put(LED_BLUE_PIN, 0);
-        gpio_put(LED_RED_PIN, 1);
-        gpio_put(LED_GREEN_PIN, 0);
-    }
-    if (strcmp(comando, "BLUE") == 0)
-    {
-        gpio_put(LED_BLUE_PIN, 1);
-        gpio_put(LED_RED_PIN, 0);
-        gpio_put(LED_GREEN_PIN, 0);
-    }
-    if (strcmp(comando, "GREEN") == 0)
-    {
-        gpio_put(LED_BLUE_PIN, 0);  // Liga o LED Azul
-        gpio_put(LED_RED_PIN, 0);   // Desliga o LED Vermelho
-        gpio_put(LED_GREEN_PIN, 1); // Desliga o LED Verde
-    }
-
-    if (strcmp(comando, "WHITE") == 0)
-    {
-        gpio_put(LED_RED_PIN, 1);
-        gpio_put(LED_GREEN_PIN, 1);
-        gpio_put(LED_BLUE_PIN, 1);
-    }
-
-    if (strcmp(comando, "KEY5") == 0)
-    {
-        handle_key_5(); // Chama a função que desliga todos os LEDs
-    }
-
-    if (strncmp(comando, "RGB", 3) == 0)
-    {
-        // Extrair valores RGB do comando, no formato "RGB_RRR_GGG_BBB"
-        int r, g, b;
-        if (sscanf(comando, "RGB_%d_%d_%d", &r, &g, &b) == 3)
-        {
-            gpio_put(LED_RED_PIN, r > 0 ? 1 : 0);
-            gpio_put(LED_GREEN_PIN, g > 0 ? 1 : 0);
-            gpio_put(LED_BLUE_PIN, b > 0 ? 1 : 0);
-        }
-        else
-        {
-            printf("Comando RGB invalido\n");
-        }
-    }
-
-    if (strcmp(comando, "OFF") == 0)
-    {
-        // Desligar todos os LEDs inicialmente
-        gpio_put(LED_RED_PIN, 0);
-        gpio_put(LED_GREEN_PIN, 0);
-        gpio_put(LED_BLUE_PIN, 0);
-        gpio_put(BUZZER_PIN, 0); // Garantir que o Buzzer esteja desligado inicialmente
-    }
-
-    if (strcmp(comando, "REBOOT") == 0)
-    {
-        // Atividade 7: Sair do modo de execução e reiniciar o dispositivo
-        printf("Reiniciando...\n");
-        watchdog_enable(1000, true); // Habilita o watchdog para reiniciar o sistema após 1 segundo
-        while (1)
-        {
-        } // Aguarda reinício
-    }
-}
+void blink_red(u_int32_t LED_PIN_blik);                   // Protótipo da função que faz o LED vermelho piscar
+static void gpio_irq_handler(uint gpio, uint32_t events); // Protótipo da função de interrupção dos botões
 
 // Loop principal do programa
+
+ssd1306_t ssd; // Inicializa a estrutura do display
+bool cor = true;
 int main()
 {
     stdio_init_all();
     initialize_gpio();
-    pwm_init_buzzer(BUZZER_PIN);
+    gpio_init(BUTTON_A);
+    gpio_set_dir(BUTTON_A, GPIO_IN); // Configura o pino como entrada
+    gpio_pull_up(BUTTON_A);          // Habilita o pull-up interno
+
+    gpio_init(BUTTON_B);
+    gpio_set_dir(BUTTON_B, GPIO_IN); // Configura o pino como entrada
+    gpio_pull_up(BUTTON_B);          // Habilita o pull-up interno
+    npInit(LED_PIN);                 // Inicializa a matriz de LEDs (função externa)
 
     // I2C Initialisation. Using it at 400Khz.
     i2c_init(I2C_PORT, 400 * 1000);
 
-    gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);                    // Set the GPIO pin function to I2C
-    gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);                    // Set the GPIO pin function to I2C
-    gpio_pull_up(I2C_SDA);                                        // Pull up the data line
-    gpio_pull_up(I2C_SCL);                                        // Pull up the clock line
-    ssd1306_t ssd;                                                // Inicializa a estrutura do display
+    gpio_set_function(I2C_SDA, GPIO_FUNC_I2C); // Set the GPIO pin function to I2C
+    gpio_set_function(I2C_SCL, GPIO_FUNC_I2C); // Set the GPIO pin function to I2C
+    gpio_pull_up(I2C_SDA);                     // Pull up the data line
+    gpio_pull_up(I2C_SCL);                     // Pull up the clock line
+
     ssd1306_init(&ssd, WIDTH, HEIGHT, false, endereco, I2C_PORT); // Inicializa o display
     ssd1306_config(&ssd);                                         // Configura o display
     ssd1306_send_data(&ssd);                                      // Envia os dados para o display
@@ -181,28 +85,91 @@ int main()
     ssd1306_fill(&ssd, false);
     ssd1306_send_data(&ssd);
 
-    bool cor = true;
+    // Configuração das interrupções dos botões para detecção de borda de descida
+    gpio_set_irq_enabled_with_callback(BUTTON_A, GPIO_IRQ_EDGE_FALL, true, &gpio_irq_handler);
+
+    gpio_set_irq_enabled_with_callback(BUTTON_B, GPIO_IRQ_EDGE_FALL, true, &gpio_irq_handler);
 
     char comando[50];
+
     while (1)
     {
+        // blink_red(LED_RED_PIN); // Faz o LED vermelho piscar continuamente
+
         printf("Digite um comando: ");
         scanf("%s", comando);
 
-        
+        // ESCREVE NA MATRIZ DE LED
+        if (comando[0] >= '0' && comando[0] <= '9' && comando[1] == '\0') // Verifica se é um único dígito de 0 a 9
+        {
+            int num = comando[0] - '0'; // Converte caractere para inteiro
+            // ESCREVE NA MATRIZ DE LED
+            Num(num);
+        }
 
-        // Controlar os LEDs com base no comando
-        cor = !cor;
-        // Atualiza o conteúdo do display com animações
-        ssd1306_fill(&ssd, !cor);                     // Limpa o display
-        ssd1306_rect(&ssd, 3, 3, 122, 58, cor, !cor); // Desenha um retângulo
-        ssd1306_draw_string(&ssd, comando, 8, 10);    // Desenha uma string
-        ssd1306_draw_string(&ssd, "EMBARCATECH", 20, 30);   // Desenha uma string
-        ssd1306_draw_string(&ssd, "PROF WILTON", 15, 48);   // Desenha uma string
-        ssd1306_send_data(&ssd); // Atualiza o display
+        if (strcmp(comando, "off") == 0)
+        {
+            Num(999); // MANDA UM VALOR INBALIDO PRA DESLIGAR OS LEDS
+        }
+
+        // ESCREVE NO DISPLAY
+        ssd1306_fill(&ssd, !cor);                  // Limpa o display
+        ssd1306_draw_string(&ssd, comando, 8, 10); // Desenha a string (número)
+        ssd1306_send_data(&ssd);
+
+        // Atualiza o display
 
         sleep_ms(1000);
     }
 
     return 0;
+}
+
+// Função que faz o LED vermelho piscar continuamente
+void blink_red(u_int32_t LED_PIN_blik)
+{
+    gpio_put(LED_PIN_blik, !gpio_get(LED_PIN_blik)); // Alterna o estado do LED
+    sleep_ms(200);                                   // Aguarda 200ms antes da próxima mudança
+}
+
+// Função de interrupção chamada quando um botão é pressionado
+void gpio_irq_handler(uint gpio, uint32_t events)
+{
+    // Obtém o tempo atual em microssegundos
+    uint32_t current_time = to_us_since_boot(get_absolute_time());
+
+    // Verifica se passou tempo suficiente desde o último evento (200ms de debounce)
+    if (current_time - last_time > 200000)
+    {
+        printf(" Interrupção ocorreu no pino %d, no evento %d\n ", gpio, events);
+        last_time = current_time; // Atualiza o tempo do último evento
+
+        // Verifica qual botão foi pressionado e define o valor de AUXBUTON
+        if (gpio == BUTTON_A)
+        {
+            gpio_put(LED_GREEN_PIN, !gpio_get(LED_GREEN_PIN));
+            AUXBUTON1 = (AUXBUTON1 + 1) % 2;                                     // Alterna entre 0 (OFF) e 1 (ON)
+            sprintf(buffer, "%s", AUXBUTON1 ? "LED VERDE ON" : "LED VERDE OFF"); // Formata a string corretamente
+
+            ssd1306_fill(&ssd, !cor);                 // Limpa o display
+            ssd1306_draw_string(&ssd, buffer, 8, 10); // Desenha a string formatada
+            ssd1306_send_data(&ssd);
+            printf("%s", buffer);
+        }
+        else if (gpio == BUTTON_B)
+        {
+            gpio_put(LED_BLUE_PIN, !gpio_get(LED_BLUE_PIN));
+
+            AUXBUTON2 = (AUXBUTON2 + 1) % 2; // Alterna entre 0 (OFF) e 1 (ON)
+
+            // Buffer para armazenar a string formatada
+            sprintf(buffer, " %s", AUXBUTON2 ? "LED AZUL ON" : "LED AZUL OFF"); // Formata a string corretamente
+                                                                                // ESCREVE NO DISPLAY
+
+            ssd1306_fill(&ssd, !cor);                 // Limpa o display
+            ssd1306_draw_string(&ssd, buffer, 8, 10); // Desenha a string formatada
+            ssd1306_send_data(&ssd);
+            printf("%s", buffer);
+        }
+    }
 }
