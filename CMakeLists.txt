@@ -35,7 +35,7 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(projeto_serial_rp2040 projeto_serial_rp2040.c )
+add_executable(projeto_serial_rp2040 projeto_serial_rp2040.c inc/ssd1306.c)
 
 pico_set_program_name(projeto_serial_rp2040 "projeto_serial_rp2040")
 pico_set_program_version(projeto_serial_rp2040 "0.1")
@@ -46,6 +46,8 @@ pico_enable_stdio_usb(projeto_serial_rp2040 1)
 
 # Add the standard library to the build
 target_link_libraries(projeto_serial_rp2040
+hardware_timer
+hardware_pwm
         pico_stdlib)
 
 # Add the standard include files to the build
@@ -61,6 +63,8 @@ hardware_clocks
 hardware_pwm
 hardware_adc
 pico_bootrom
+hardware_i2c
+
         )
 
 pico_add_extra_outputs(projeto_serial_rp2040)
