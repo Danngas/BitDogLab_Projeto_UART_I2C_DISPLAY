@@ -186,11 +186,6 @@ void ssd1306_draw_char(ssd1306_t *ssd, char c, uint8_t x, uint8_t y)
   {
     index = (c - 'a' + 37) * 8;
   }
-  else if (c >= 32 && c <= 126)
-  { // Suporte para caracteres especiais
-    index = (c - '!' + 40) * 8;
-  }
-
   for (uint8_t i = 0; i < 8; ++i)
   {
     uint8_t line = font[index + i];
@@ -217,5 +212,53 @@ void ssd1306_draw_string(ssd1306_t *ssd, const char *str, uint8_t x, uint8_t y)
     {
       break;
     }
+  }
+}
+
+
+
+void ssd1306_draw_char_large(ssd1306_t *ssd, char c, uint8_t x, uint8_t y) {
+ 
+  uint16_t index = 0;
+  char ver = c;
+  if (c >= 'A' && c <= 'Z')
+  {
+    index = (c - 'A' + 11) * 8; // Para letras maiúsculas
+  }
+  else if (c >= '0' && c <= '9')
+  {
+    index = (c - '0' + 1) * 8; // Adiciona o deslocamento necessário
+  }
+  else if (c >= 'a' && c <= 'z')
+  {
+    index = (c - 'a' + 37) * 8;
+  }
+
+  for (uint8_t i = 0; i < 8; ++i) {
+      uint8_t line = font[index + i];
+      for (uint8_t j = 0; j < 8; ++j) {
+          bool pixel_on = line & (1 << j);
+          // Expande cada pixel para um bloco 2x2
+          ssd1306_pixel(ssd, x + (i * 2), y + (j * 2), pixel_on);
+          ssd1306_pixel(ssd, x + (i * 2) + 1, y + (j * 2), pixel_on);
+          ssd1306_pixel(ssd, x + (i * 2), y + (j * 2) + 1, pixel_on);
+          ssd1306_pixel(ssd, x + (i * 2) + 1, y + (j * 2) + 1, pixel_on);
+      }
+  }
+}
+
+
+
+void ssd1306_draw_string_large(ssd1306_t *ssd, const char *str, uint8_t x, uint8_t y) {
+  while (*str) {
+      ssd1306_draw_char_large(ssd, *str++, x, y);
+      x += 16; // Ajuste para caracteres ampliados (antes era 8)
+      if (x + 16 >= ssd->width) {
+          x = 0;
+          y += 16;
+      }
+      if (y + 16 >= ssd->height) {
+          break;
+      }
   }
 }

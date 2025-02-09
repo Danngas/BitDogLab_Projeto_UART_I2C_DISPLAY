@@ -32,7 +32,7 @@
 int AUXBUTON1 = 0; // Variável auxiliar para armazenar qual botão foi pressionado
 int AUXBUTON2 = 0;
 static int numero_atual = 5; // Variável que armazena o número atualmente exibido na matriz de LEDs
-char buffer[20];
+char buffer[20] = " ";
 static volatile uint32_t last_time = 0; // Variável auxiliar para controle de debounce
 
 void initialize_gpio()
@@ -90,12 +90,13 @@ int main()
 
     gpio_set_irq_enabled_with_callback(BUTTON_B, GPIO_IRQ_EDGE_FALL, true, &gpio_irq_handler);
 
-    char comando[50];
+    char comando[1000];
 
     while (1)
     {
         // blink_red(LED_RED_PIN); // Faz o LED vermelho piscar continuamente
 
+     
         printf("Digite um comando: ");
         scanf("%s", comando);
 
@@ -113,13 +114,13 @@ int main()
         }
 
         // ESCREVE NO DISPLAY
-        ssd1306_fill(&ssd, !cor);                  // Limpa o display
-        ssd1306_draw_string(&ssd, comando, 8, 10); // Desenha a string (número)
+        ssd1306_fill(&ssd, !cor);                       // Limpa o display
+        ssd1306_draw_string_large(&ssd, comando, 0, 0); // Desenha a string (número)
         ssd1306_send_data(&ssd);
 
         // Atualiza o display
 
-        sleep_ms(1000);
+        // sleep_ms(1000);
     }
 
     return 0;
@@ -141,20 +142,23 @@ void gpio_irq_handler(uint gpio, uint32_t events)
     // Verifica se passou tempo suficiente desde o último evento (200ms de debounce)
     if (current_time - last_time > 200000)
     {
-        printf(" Interrupção ocorreu no pino %d, no evento %d\n ", gpio, events);
+        printf("\nInterrupção ocorreu no pino %d, no evento %d\n ", gpio, events);
         last_time = current_time; // Atualiza o tempo do último evento
 
         // Verifica qual botão foi pressionado e define o valor de AUXBUTON
         if (gpio == BUTTON_A)
         {
             gpio_put(LED_GREEN_PIN, !gpio_get(LED_GREEN_PIN));
-            AUXBUTON1 = (AUXBUTON1 + 1) % 2;                                     // Alterna entre 0 (OFF) e 1 (ON)
-            sprintf(buffer, "%s", AUXBUTON1 ? "LED VERDE ON" : "LED VERDE OFF"); // Formata a string corretamente
+            AUXBUTON1 = (AUXBUTON1 + 1) % 2;                 // Alterna entre 0 (OFF) e 1 (ON)
+            sprintf(buffer, "%s", AUXBUTON1 ? "  ON" : "  OFF"); // Formata a string corretamente
 
-            ssd1306_fill(&ssd, !cor);                 // Limpa o display
-            ssd1306_draw_string(&ssd, buffer, 8, 10); // Desenha a string formatada
+            ssd1306_fill(&ssd, !cor);                            // Limpa o display
+            ssd1306_draw_string_large(&ssd, "  Led",5,0); // Desenha a string formatada
+            ssd1306_draw_string_large(&ssd, " Verde",5,20);
+            ssd1306_draw_string_large(&ssd, buffer,10,40);
+
             ssd1306_send_data(&ssd);
-            printf("%s", buffer);
+            printf("\nLED VERDE %s", buffer);
         }
         else if (gpio == BUTTON_B)
         {
@@ -163,13 +167,15 @@ void gpio_irq_handler(uint gpio, uint32_t events)
             AUXBUTON2 = (AUXBUTON2 + 1) % 2; // Alterna entre 0 (OFF) e 1 (ON)
 
             // Buffer para armazenar a string formatada
-            sprintf(buffer, " %s", AUXBUTON2 ? "LED AZUL ON" : "LED AZUL OFF"); // Formata a string corretamente
-                                                                                // ESCREVE NO DISPLAY
+            sprintf(buffer, " %s", AUXBUTON2 ? " ON" : " OFF"); // Formata a string corretamente
+                                                                                 // ESCREVE NO DISPLAY
 
             ssd1306_fill(&ssd, !cor);                 // Limpa o display
-            ssd1306_draw_string(&ssd, buffer, 8, 10); // Desenha a string formatada
+            ssd1306_draw_string_large(&ssd, "  Led",5,0); // Desenha a string formatada
+            ssd1306_draw_string_large(&ssd, "  Azul",0,20);
+            ssd1306_draw_string_large(&ssd, buffer,10,40);
             ssd1306_send_data(&ssd);
-            printf("%s", buffer);
+            printf("\nLED AZUL %s", buffer);
         }
     }
 }
