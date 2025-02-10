@@ -1,5 +1,5 @@
 # 🎛️ Projeto: BitDogLab - Comunicação Serial e Controle de LEDs
-
+link do video : https://youtu.be/QfEve27n8LU
 ## 📝 Descrição do Projeto  
 
 Este projeto foi desenvolvido para consolidar os conhecimentos sobre a **comunicação serial (UART e I2C)** no microcontrolador **RP2040** utilizando a placa **BitDogLab**. O objetivo é controlar diversos dispositivos, como **matriz de LEDs WS2812**, **LED RGB**, **botões físicos** e um **display OLED SSD1306** com as seguintes funcionalidades:
